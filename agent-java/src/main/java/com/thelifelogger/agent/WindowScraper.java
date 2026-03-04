@@ -49,10 +49,7 @@ public class WindowScraper {
 
                 try{
                     HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                    System.out.println("Ping wysłany! Status: " + response.statusCode());
-                } catch (Exception e) {
-                    System.out.println("Błąd wysyłania: " + e.getMessage());
-                }
+                } catch (Exception _) {}
             }
 
             Thread.sleep(5000);

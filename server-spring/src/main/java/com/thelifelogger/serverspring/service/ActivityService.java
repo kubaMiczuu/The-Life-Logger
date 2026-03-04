@@ -5,9 +5,12 @@ import com.thelifelogger.serverspring.repository.ActivitySessionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -36,8 +39,14 @@ public class ActivityService {
             } else {
                 log.info("Switching from {} to {}", runningProcess, processName);
 
-                currentSession.setEndTime(currentSession.getLastSeen());
-                activitySessionRepository.save(currentSession);
+                Duration duration = Duration.between(currentSession.getStartTime(), currentSession.getLastSeen());
+                if(duration.toSeconds() >= 5) {
+                    currentSession.setDurationSeconds(duration.toSeconds());
+                    currentSession.setEndTime(currentSession.getLastSeen());
+                    activitySessionRepository.save(currentSession);
+                } else {
+                    activitySessionRepository.delete(currentSession);
+                }
 
                 createActivitySession(processName, windowTitle);
             }
@@ -57,5 +66,23 @@ public class ActivityService {
         activitySessionRepository.save(newSession);
 
         log.info("[NEW SESSION] Started: {}", processName);
+    }
+
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void closeAbandonedSession() {
+
+        Instant checkPoint = Instant.now().minusSeconds(15);
+
+        List<ActivitySession> endNullSessions = activitySessionRepository.findAllByEndTimeIsNullAndLastSeenBefore(checkPoint);
+        if(!endNullSessions.isEmpty()) {
+            log.info("Found {} abandoned sessions. Closing...", endNullSessions.size());
+
+            for(ActivitySession abandonedSession : endNullSessions) {
+                abandonedSession.setEndTime(abandonedSession.getLastSeen());
+                Duration duration = Duration.between(abandonedSession.getStartTime(), abandonedSession.getLastSeen());
+                abandonedSession.setDurationSeconds(duration.toSeconds());
+            }
+        }
     }
 }

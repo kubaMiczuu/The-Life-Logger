@@ -32,4 +32,7 @@ public class ActivitySession {
 
     @Column(name="end_time")
     private Instant endTime;
+
+    @Column(name="duration_seconds")
+    private Long durationSeconds;
 }
