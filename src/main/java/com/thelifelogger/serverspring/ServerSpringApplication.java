@@ -1,4 +1,4 @@
-package com.example.serverspring;
+package com.thelifelogger.serverspring;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

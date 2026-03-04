@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
+    <groupId>com.thelifelogger</groupId>
     <artifactId>server-spring</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>server-spring</name>

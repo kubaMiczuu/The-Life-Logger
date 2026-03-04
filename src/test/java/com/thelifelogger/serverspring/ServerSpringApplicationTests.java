@@ -1,4 +1,4 @@
-package com.example.serverspring;
+package com.thelifelogger.serverspring;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
