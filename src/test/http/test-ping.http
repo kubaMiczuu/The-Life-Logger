@@ -1,0 +1,7 @@
+POST http://localhost:8080/api/activities/ping
+Content-Type: application/json
+
+{
+  "processName": "chrome.exe",
+  "windowTitle": "gemini"
+}
