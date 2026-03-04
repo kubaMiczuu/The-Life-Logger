@@ -1,5 +1,6 @@
 package com.thelifelogger.serverspring.service;
 
+import com.thelifelogger.serverspring.dto.ActivitySummary;
 import com.thelifelogger.serverspring.model.ActivitySession;
 import com.thelifelogger.serverspring.repository.ActivitySessionRepository;
 import jakarta.transaction.Transactional;
@@ -8,8 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Optional;
 
@@ -85,4 +87,60 @@ public class ActivityService {
             }
         }
     }
+
+    public List<ActivitySummary> getSummary() {
+        return activitySessionRepository.getSummary();
+    }
+
+    public List<ActivitySummary> getCustomSummary() {
+        Instant startDate = Instant.now().truncatedTo(ChronoUnit.DAYS).minus(1, ChronoUnit.DAYS);
+        Instant endDate =  Instant.now().truncatedTo(ChronoUnit.DAYS);
+
+        return activitySessionRepository.getCustomSummary(startDate, endDate);
+    }
+
+    public List<ActivitySummary> getDailySummary() {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        return activitySessionRepository.getDailySummary(startOfDay);
+    }
+
+    public List<ActivitySummary> getWeeklySummary() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        Instant startOfWeek = now
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .truncatedTo(ChronoUnit.DAYS)
+                .toInstant();
+
+        Instant endOfNow = Instant.now();
+
+        return activitySessionRepository.getWeeklySummary(startOfWeek, endOfNow);
+    }
+
+    public List<ActivitySummary> getMonthlySummary() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        Instant startOfMonth = now
+                .with(TemporalAdjusters.firstDayOfMonth())
+                .truncatedTo(ChronoUnit.DAYS)
+                .toInstant();
+
+        Instant endOfNow = Instant.now();
+
+        return  activitySessionRepository.getMonthlySummary(startOfMonth, endOfNow);
+    }
+
+    public List<ActivitySummary> getLast7DaysSummary() {
+        Instant startDay = Instant.now().minus(Duration.ofDays(7));
+        Instant endDay = Instant.now();
+
+        return activitySessionRepository.getLast7DaysSummary(startDay, endDay);
+    }
+
+    public List<ActivitySummary> getLast30DaysSummary() {
+        Instant startDay = Instant.now().minus(Duration.ofDays(30));
+        Instant endDay = Instant.now();
+
+        return  activitySessionRepository.getLast30DaysSummary(startDay, endDay);
+    }
+
 }
