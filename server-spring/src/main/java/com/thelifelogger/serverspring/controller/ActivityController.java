@@ -2,10 +2,8 @@ package com.thelifelogger.serverspring.controller;
 
 import com.thelifelogger.serverspring.dto.ActivitySummary;
 import com.thelifelogger.serverspring.dto.PingRequest;
-import com.thelifelogger.serverspring.repository.ActivitySessionRepository;
 import com.thelifelogger.serverspring.service.ActivityService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

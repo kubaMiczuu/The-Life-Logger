@@ -1,7 +1,11 @@
 package com.thelifelogger.serverspring.service;
 
 import com.thelifelogger.serverspring.dto.ActivitySummary;
+import com.thelifelogger.serverspring.dto.NormalizedRule;
+import com.thelifelogger.serverspring.model.ActivityRule;
 import com.thelifelogger.serverspring.model.ActivitySession;
+import com.thelifelogger.serverspring.model.RuleType;
+import com.thelifelogger.serverspring.repository.ActivityRuleRepository;
 import com.thelifelogger.serverspring.repository.ActivitySessionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -12,14 +16,14 @@ import org.springframework.stereotype.Service;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
 public class ActivityService {
     private final ActivitySessionRepository activitySessionRepository;
+    private final ActivityRuleRepository activityRuleRepository;
 
     @Transactional
     public void processPing(String processName, String windowTitle) {
@@ -89,20 +93,20 @@ public class ActivityService {
     }
 
     public List<ActivitySummary> getSummary() {
-        return activitySessionRepository.getSummary();
+        return enrich(activitySessionRepository.getSummary());
     }
 
     public List<ActivitySummary> getCustomSummary() {
         Instant startDate = Instant.now().truncatedTo(ChronoUnit.DAYS).minus(1, ChronoUnit.DAYS);
         Instant endDate =  Instant.now().truncatedTo(ChronoUnit.DAYS);
 
-        return activitySessionRepository.getCustomSummary(startDate, endDate);
+        return enrich(activitySessionRepository.getCustomSummary(startDate, endDate));
     }
 
     public List<ActivitySummary> getDailySummary() {
         Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
 
-        return activitySessionRepository.getDailySummary(startOfDay);
+        return enrich(activitySessionRepository.getDailySummary(startOfDay));
     }
 
     public List<ActivitySummary> getWeeklySummary() {
@@ -114,7 +118,7 @@ public class ActivityService {
 
         Instant endOfNow = Instant.now();
 
-        return activitySessionRepository.getWeeklySummary(startOfWeek, endOfNow);
+        return enrich(activitySessionRepository.getWeeklySummary(startOfWeek, endOfNow));
     }
 
     public List<ActivitySummary> getMonthlySummary() {
@@ -126,21 +130,69 @@ public class ActivityService {
 
         Instant endOfNow = Instant.now();
 
-        return  activitySessionRepository.getMonthlySummary(startOfMonth, endOfNow);
+        return  enrich(activitySessionRepository.getMonthlySummary(startOfMonth, endOfNow));
     }
 
     public List<ActivitySummary> getLast7DaysSummary() {
         Instant startDay = Instant.now().minus(Duration.ofDays(7));
         Instant endDay = Instant.now();
 
-        return activitySessionRepository.getLast7DaysSummary(startDay, endDay);
+        return enrich(activitySessionRepository.getLast7DaysSummary(startDay, endDay));
     }
 
     public List<ActivitySummary> getLast30DaysSummary() {
         Instant startDay = Instant.now().minus(Duration.ofDays(30));
         Instant endDay = Instant.now();
 
-        return  activitySessionRepository.getLast30DaysSummary(startDay, endDay);
+        return  enrich(activitySessionRepository.getLast30DaysSummary(startDay, endDay));
     }
 
+    private List<ActivitySummary> enrich(List<Object[]> rawData) {
+        List<ActivityRule> allRules = activityRuleRepository.findAll();
+
+        List<NormalizedRule> processRules = new ArrayList<>();
+        List<NormalizedRule> titleRules = new ArrayList<>();
+        for(ActivityRule rule : allRules) {
+            String currentPattern = rule.getPattern().replaceAll(" ", "").toLowerCase();
+            NormalizedRule currentRule = new NormalizedRule(currentPattern, rule.getCategory(), rule.getDomain());
+            if(rule.getRuleType() == RuleType.PROCESS) processRules.add(currentRule);
+            else if(rule.getRuleType() == RuleType.TITLE) titleRules.add(currentRule);
+        }
+
+        List<ActivitySummary> results = new ArrayList<>();
+
+        for(Object[] currentData : rawData) {
+            String processName = currentData[0] != null ? currentData[0].toString() : "";
+            String cleanProcessName = processName.replaceAll(" ", "").toLowerCase();
+
+            String windowName = currentData[1] != null ? currentData[1].toString() : "";
+            String cleanWindowName = windowName.replaceAll(" ", "").toLowerCase();
+
+            Long duration = ((Number) currentData[2]).longValue();
+
+            String label = windowName.isEmpty() ? processName : windowName;
+            String category = "Uncategorized";
+            String domain = "";
+
+            for(NormalizedRule rule : titleRules) {
+                if(cleanWindowName.contains(rule.pattern())) {
+                    category = rule.category();
+                    domain = rule.domain();
+                    break;
+                }
+            }
+
+            if(category.equals("Uncategorized")) {
+                for(NormalizedRule rule : processRules) {
+                    if(cleanProcessName.contains(rule.pattern())) {
+                        category = rule.category();
+                        break;
+                    }
+                }
+            }
+
+            results.add(new ActivitySummary(processName, label, duration,  category, domain));
+        }
+        return results;
+    }
 }
