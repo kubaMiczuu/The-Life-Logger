@@ -6,6 +6,7 @@ import com.thelifelogger.serverspring.dto.NormalizedRule;
 import com.thelifelogger.serverspring.dto.StatsData;
 import com.thelifelogger.serverspring.model.ActivityRule;
 import com.thelifelogger.serverspring.model.ActivitySession;
+import com.thelifelogger.serverspring.model.RuleType;
 import com.thelifelogger.serverspring.repository.ActivityRuleRepository;
 import com.thelifelogger.serverspring.repository.ActivitySessionRepository;
 import jakarta.transaction.Transactional;
@@ -92,6 +93,23 @@ public class ActivityService {
                 abandonedSession.setDurationSeconds(duration.toSeconds());
             }
         }
+    }
+
+    public void processRule(ActivityRule rule) {
+        String pattern = rule.getPattern();
+        String category = rule.getCategory();
+        String domain = rule.getDomain();
+
+        ActivityRule activityRule = new ActivityRule();
+
+        activityRule.setPattern(pattern);
+        activityRule.setCategory(category);
+        activityRule.setDomain(domain);
+
+        if(!domain.isEmpty()) activityRule.setRuleType(RuleType.TITLE);
+        else activityRule.setRuleType(RuleType.PROCESS);
+
+        activityRuleRepository.save(activityRule);
     }
 
     public DashboardResponse getSummaryForRange(String range, LocalDate startDate, LocalDate endDate) {

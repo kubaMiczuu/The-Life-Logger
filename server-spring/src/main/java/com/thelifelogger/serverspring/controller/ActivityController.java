@@ -2,6 +2,7 @@ package com.thelifelogger.serverspring.controller;
 
 import com.thelifelogger.serverspring.dto.DashboardResponse;
 import com.thelifelogger.serverspring.dto.PingRequest;
+import com.thelifelogger.serverspring.model.ActivityRule;
 import com.thelifelogger.serverspring.service.ActivityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +19,11 @@ public class ActivityController {
     @PostMapping("/activities/ping")
     public void postPing(@RequestBody PingRequest request) {
         activityService.processPing(request.processName(),  request.windowTitle());
+    }
+
+    @PostMapping("/activities/rule")
+    public void postRule(@RequestBody ActivityRule rule) {
+        activityService.processRule(rule);
     }
 
     @GetMapping("/stats/summary")
