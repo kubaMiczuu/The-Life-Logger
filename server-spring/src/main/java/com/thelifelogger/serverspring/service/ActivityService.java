@@ -3,9 +3,9 @@ package com.thelifelogger.serverspring.service;
 import com.thelifelogger.serverspring.dto.ActivitySummary;
 import com.thelifelogger.serverspring.dto.DashboardResponse;
 import com.thelifelogger.serverspring.dto.NormalizedRule;
+import com.thelifelogger.serverspring.dto.StatsData;
 import com.thelifelogger.serverspring.model.ActivityRule;
 import com.thelifelogger.serverspring.model.ActivitySession;
-import com.thelifelogger.serverspring.model.RuleType;
 import com.thelifelogger.serverspring.repository.ActivityRuleRepository;
 import com.thelifelogger.serverspring.repository.ActivitySessionRepository;
 import jakarta.transaction.Transactional;
@@ -18,6 +18,7 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.function.Function;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -164,26 +165,48 @@ public class ActivityService {
                 break;
         }
 
-        log.info(String.valueOf(startDateInstant));
-        log.info(String.valueOf(endDateInstant));
         return enrich(activitySessionRepository.getSummaryForRange(startDateInstant, endDateInstant));
     }
 
     private DashboardResponse enrich(List<Object[]> rawData) {
-        List<ActivityRule> allRules = activityRuleRepository.findAll();
-
-        List<NormalizedRule> processRules = new ArrayList<>();
-        List<NormalizedRule> titleRules = new ArrayList<>();
-        for(ActivityRule rule : allRules) {
-            String currentPattern = rule.getPattern().replaceAll(" ", "").toLowerCase();
-            NormalizedRule currentRule = new NormalizedRule(currentPattern, rule.getCategory(), rule.getDomain());
-            if(rule.getRuleType() == RuleType.PROCESS) processRules.add(currentRule);
-            else if(rule.getRuleType() == RuleType.TITLE) titleRules.add(currentRule);
-        }
+        List<NormalizedRule> processRules = normalizeRules("PROCESS");
+        List<NormalizedRule> titleRules = normalizeRules("TITLE");
 
         Map<String, Long> processMap = new HashMap<>();
         Map<String, Long> categoryMap = new HashMap<>();
         Map<String, Long> browserMap = new HashMap<>();
+
+        StatsData mapsData = fillMaps(rawData, processMap, categoryMap, browserMap, processRules, titleRules);
+
+        List<ActivitySummary> processStats = getStats(mapsData.process(),
+                e -> new ActivitySummary(e.getKey(), e.getKey(), e.getValue(), null, null));
+
+        List<ActivitySummary> categoryStats = getStats(mapsData.category(),
+                e -> new ActivitySummary(e.getKey(), e.getKey(), e.getValue(), e.getKey(), null));
+
+        List<ActivitySummary> browserStats = getStats(mapsData.browser(),
+                e -> new ActivitySummary(null, null, e.getValue(), null, e.getKey()));
+
+        return new DashboardResponse(processStats, categoryStats, browserStats);
+    }
+
+    private List<NormalizedRule> normalizeRules(String expectedRuleType) {
+        List<ActivityRule> allRules = activityRuleRepository.findAll();
+        List<NormalizedRule> normalizedRules = new ArrayList<>();
+
+        for(ActivityRule rule : allRules) {
+            String currentPattern = rule.getPattern().replaceAll(" ", "").toLowerCase();
+
+            NormalizedRule currentRule = new NormalizedRule(currentPattern, rule.getCategory(), rule.getDomain());
+
+            String ruleType = String.valueOf(rule.getRuleType());
+            if(ruleType.equals(expectedRuleType)) normalizedRules.add(currentRule);
+        }
+
+        return normalizedRules;
+    }
+
+    private StatsData fillMaps(List<Object[]> rawData, Map<String, Long> processMap, Map<String, Long> categoryMap, Map<String, Long> browserMap, List<NormalizedRule> processRules,  List<NormalizedRule> titleRules) {
 
         for(Object[] currentData : rawData) {
 
@@ -195,7 +218,6 @@ public class ActivityService {
 
             Long duration = ((Number) currentData[2]).longValue();
 
-            //String label = windowName.isEmpty() ? processName : windowName;
             String category = "Uncategorized";
             String domain = "";
 
@@ -223,21 +245,13 @@ public class ActivityService {
             }
         }
 
-        List<ActivitySummary> processStats = processMap.entrySet().stream()
-                .map(e -> new ActivitySummary(e.getKey(), e.getKey(), e.getValue(), null, null))
+        return new StatsData(processMap, categoryMap, browserMap);
+    }
+
+    private List<ActivitySummary> getStats(Map<String, Long> map, Function<Map.Entry<String, Long>, ActivitySummary> mapper) {
+        return map.entrySet().stream()
+                .map(mapper)
                 .sorted(Comparator.comparingLong(ActivitySummary::durationSeconds).reversed())
                 .toList();
-
-        List<ActivitySummary> categoryStats = categoryMap.entrySet().stream()
-                .map(e -> new ActivitySummary(e.getKey(), e.getKey(), e.getValue(), e.getKey(), null))
-                .sorted(Comparator.comparingLong(ActivitySummary::durationSeconds).reversed())
-                .toList();
-
-        List<ActivitySummary> browserStats = browserMap.entrySet().stream()
-                .map(e -> new ActivitySummary(null, null, e.getValue(), null, e.getKey()))
-                .sorted(Comparator.comparingLong(ActivitySummary::durationSeconds).reversed())
-                .toList();
-
-        return new DashboardResponse(processStats, categoryStats, browserStats);
     }
 }
