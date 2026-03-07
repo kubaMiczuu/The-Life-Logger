@@ -1,6 +1,7 @@
 package com.thelifelogger.serverspring.service;
 
 import com.thelifelogger.serverspring.dto.ActivitySummary;
+import com.thelifelogger.serverspring.dto.DashboardResponse;
 import com.thelifelogger.serverspring.dto.NormalizedRule;
 import com.thelifelogger.serverspring.model.ActivityRule;
 import com.thelifelogger.serverspring.model.ActivitySession;
@@ -92,62 +93,83 @@ public class ActivityService {
         }
     }
 
-    public List<ActivitySummary> getSummary() {
-        return enrich(activitySessionRepository.getSummary());
-    }
+    public DashboardResponse getSummaryForRange(String range, LocalDate startDate, LocalDate endDate) {
 
-    public List<ActivitySummary> getCustomSummary() {
-        Instant startDate = Instant.now().truncatedTo(ChronoUnit.DAYS).minus(1, ChronoUnit.DAYS);
-        Instant endDate =  Instant.now().truncatedTo(ChronoUnit.DAYS);
-
-        return enrich(activitySessionRepository.getCustomSummary(startDate, endDate));
-    }
-
-    public List<ActivitySummary> getDailySummary() {
-        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
-
-        return enrich(activitySessionRepository.getDailySummary(startOfDay));
-    }
-
-    public List<ActivitySummary> getWeeklySummary() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
-        Instant startOfWeek = now
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .truncatedTo(ChronoUnit.DAYS)
-                .toInstant();
 
-        Instant endOfNow = Instant.now();
+        Instant startDateInstant = null;
+        Instant endDateInstant = null;
+        if(startDate != null) startDateInstant = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        if(endDate != null) endDateInstant = endDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
 
-        return enrich(activitySessionRepository.getWeeklySummary(startOfWeek, endOfNow));
+
+        if(range == null) range = "";
+
+        switch(range) {
+
+            case "daily":
+                if(startDateInstant == null) {
+                    startDateInstant = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+                    endDateInstant = Instant.now();
+                } else {
+                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusDays(1).toInstant();
+                }
+
+
+                break;
+
+            case "weekly":
+                if(startDateInstant == null) {
+                    startDateInstant = now
+                            .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                            .truncatedTo(ChronoUnit.DAYS)
+                            .toInstant();
+                    endDateInstant = Instant.now();
+                } else {
+                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusWeeks(1).toInstant();
+                }
+                break;
+
+            case "monthly":
+                if(startDateInstant == null) {
+                    startDateInstant = now
+                            .with(TemporalAdjusters.firstDayOfMonth())
+                            .truncatedTo(ChronoUnit.DAYS)
+                            .toInstant();
+                    endDateInstant = Instant.now();
+                } else {
+                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusMonths(1).toInstant();
+                }
+
+                break;
+
+            case "yearly":
+                if(startDateInstant == null) {
+                    startDateInstant = now
+                            .with(TemporalAdjusters.firstDayOfYear())
+                            .truncatedTo(ChronoUnit.DAYS)
+                            .toInstant();
+                    endDateInstant = Instant.now();
+                } else {
+                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusYears( 1).toInstant();
+                }
+
+                break;
+
+            default:
+                if(startDateInstant == null && endDateInstant == null) {
+                    startDateInstant = Instant.EPOCH;
+                    endDateInstant = Instant.now();
+                }
+                break;
+        }
+
+        log.info(String.valueOf(startDateInstant));
+        log.info(String.valueOf(endDateInstant));
+        return enrich(activitySessionRepository.getSummaryForRange(startDateInstant, endDateInstant));
     }
 
-    public List<ActivitySummary> getMonthlySummary() {
-        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
-        Instant startOfMonth = now
-                .with(TemporalAdjusters.firstDayOfMonth())
-                .truncatedTo(ChronoUnit.DAYS)
-                .toInstant();
-
-        Instant endOfNow = Instant.now();
-
-        return  enrich(activitySessionRepository.getMonthlySummary(startOfMonth, endOfNow));
-    }
-
-    public List<ActivitySummary> getLast7DaysSummary() {
-        Instant startDay = Instant.now().minus(Duration.ofDays(7));
-        Instant endDay = Instant.now();
-
-        return enrich(activitySessionRepository.getLast7DaysSummary(startDay, endDay));
-    }
-
-    public List<ActivitySummary> getLast30DaysSummary() {
-        Instant startDay = Instant.now().minus(Duration.ofDays(30));
-        Instant endDay = Instant.now();
-
-        return  enrich(activitySessionRepository.getLast30DaysSummary(startDay, endDay));
-    }
-
-    private List<ActivitySummary> enrich(List<Object[]> rawData) {
+    private DashboardResponse enrich(List<Object[]> rawData) {
         List<ActivityRule> allRules = activityRuleRepository.findAll();
 
         List<NormalizedRule> processRules = new ArrayList<>();
@@ -159,9 +181,12 @@ public class ActivityService {
             else if(rule.getRuleType() == RuleType.TITLE) titleRules.add(currentRule);
         }
 
-        List<ActivitySummary> results = new ArrayList<>();
+        Map<String, Long> processMap = new HashMap<>();
+        Map<String, Long> categoryMap = new HashMap<>();
+        Map<String, Long> browserMap = new HashMap<>();
 
         for(Object[] currentData : rawData) {
+
             String processName = currentData[0] != null ? currentData[0].toString() : "";
             String cleanProcessName = processName.replaceAll(" ", "").toLowerCase();
 
@@ -170,7 +195,7 @@ public class ActivityService {
 
             Long duration = ((Number) currentData[2]).longValue();
 
-            String label = windowName.isEmpty() ? processName : windowName;
+            //String label = windowName.isEmpty() ? processName : windowName;
             String category = "Uncategorized";
             String domain = "";
 
@@ -191,8 +216,28 @@ public class ActivityService {
                 }
             }
 
-            results.add(new ActivitySummary(processName, label, duration,  category, domain));
+            processMap.put(processName, processMap.getOrDefault(processName, 0L) + duration);
+            categoryMap.put(category, categoryMap.getOrDefault(category, 0L) + duration);
+            if(!domain.isEmpty()) {
+                browserMap.put(domain, browserMap.getOrDefault(domain, 0L) + duration);
+            }
         }
-        return results;
+
+        List<ActivitySummary> processStats = processMap.entrySet().stream()
+                .map(e -> new ActivitySummary(e.getKey(), e.getKey(), e.getValue(), null, null))
+                .sorted(Comparator.comparingLong(ActivitySummary::durationSeconds).reversed())
+                .toList();
+
+        List<ActivitySummary> categoryStats = categoryMap.entrySet().stream()
+                .map(e -> new ActivitySummary(e.getKey(), e.getKey(), e.getValue(), e.getKey(), null))
+                .sorted(Comparator.comparingLong(ActivitySummary::durationSeconds).reversed())
+                .toList();
+
+        List<ActivitySummary> browserStats = browserMap.entrySet().stream()
+                .map(e -> new ActivitySummary(null, null, e.getValue(), null, e.getKey()))
+                .sorted(Comparator.comparingLong(ActivitySummary::durationSeconds).reversed())
+                .toList();
+
+        return new DashboardResponse(processStats, categoryStats, browserStats);
     }
 }
