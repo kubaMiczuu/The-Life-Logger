@@ -4,14 +4,13 @@ import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class WindowScraper {
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws InterruptedException {
 
         int maxCount = 1024;
         char[] buffer = new char[maxCount];
@@ -48,7 +47,7 @@ public class WindowScraper {
                         .build();
 
                 try{
-                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                    client.send(request, HttpResponse.BodyHandlers.ofString());
                 } catch (Exception _) {}
             }
 

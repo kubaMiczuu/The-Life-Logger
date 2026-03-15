@@ -27,6 +27,7 @@ import java.util.function.Function;
 public class ActivityService {
     private final ActivitySessionRepository activitySessionRepository;
     private final ActivityRuleRepository activityRuleRepository;
+    private final Clock clock;
 
     @Transactional
     public void processPing(String processName, String windowTitle) {
@@ -42,7 +43,7 @@ public class ActivityService {
             String runningWindow = currentSession.getWindowTitle();
 
             if(runningProcess.equals(processName) && runningWindow.equals(windowTitle)) {
-                currentSession.setLastSeen(Instant.now());
+                currentSession.setLastSeen(Instant.now(clock));
 
                 log.debug("Heartbeat: {} - {}", processName, windowTitle);
             } else {
@@ -65,7 +66,7 @@ public class ActivityService {
     private void createActivitySession(String processName, String windowTitle) {
         ActivitySession newSession = new ActivitySession();
 
-        Instant now = Instant.now();
+        Instant now = Instant.now(clock);
 
         newSession.setProcessName(processName);
         newSession.setWindowTitle(windowTitle);
@@ -81,7 +82,7 @@ public class ActivityService {
     @Transactional
     public void closeAbandonedSession() {
 
-        Instant checkPoint = Instant.now().minusSeconds(15);
+        Instant checkPoint = Instant.now(clock).minusSeconds(15);
 
         List<ActivitySession> endNullSessions = activitySessionRepository.findAllByEndTimeIsNullAndLastSeenBefore(checkPoint);
         if(!endNullSessions.isEmpty()) {
@@ -114,12 +115,12 @@ public class ActivityService {
 
     public DashboardResponse getSummaryForRange(String range, LocalDate startDate, LocalDate endDate) {
 
-        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        ZonedDateTime now = ZonedDateTime.now(clock);
 
         Instant startDateInstant = null;
         Instant endDateInstant = null;
-        if(startDate != null) startDateInstant = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-        if(endDate != null) endDateInstant = endDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        if(startDate != null) startDateInstant = startDate.atStartOfDay(clock.getZone()).toInstant();
+        if(endDate != null) endDateInstant = endDate.atStartOfDay(clock.getZone()).toInstant();
 
 
         if(range == null) range = "";
@@ -128,10 +129,10 @@ public class ActivityService {
 
             case "daily":
                 if(startDateInstant == null) {
-                    startDateInstant = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
-                    endDateInstant = Instant.now();
+                    startDateInstant = LocalDate.now(clock).atStartOfDay(clock.getZone()).toInstant();
+                    endDateInstant = Instant.now(clock);
                 } else {
-                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusDays(1).toInstant();
+                    endDateInstant = startDateInstant.atZone(clock.getZone()).plusDays(1).toInstant();
                 }
 
 
@@ -143,9 +144,9 @@ public class ActivityService {
                             .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                             .truncatedTo(ChronoUnit.DAYS)
                             .toInstant();
-                    endDateInstant = Instant.now();
+                    endDateInstant = Instant.now(clock);
                 } else {
-                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusWeeks(1).toInstant();
+                    endDateInstant = startDateInstant.atZone(clock.getZone()).plusWeeks(1).toInstant();
                 }
                 break;
 
@@ -155,9 +156,9 @@ public class ActivityService {
                             .with(TemporalAdjusters.firstDayOfMonth())
                             .truncatedTo(ChronoUnit.DAYS)
                             .toInstant();
-                    endDateInstant = Instant.now();
+                    endDateInstant = Instant.now(clock);
                 } else {
-                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusMonths(1).toInstant();
+                    endDateInstant = startDateInstant.atZone(clock.getZone()).plusMonths(1).toInstant();
                 }
 
                 break;
@@ -168,9 +169,9 @@ public class ActivityService {
                             .with(TemporalAdjusters.firstDayOfYear())
                             .truncatedTo(ChronoUnit.DAYS)
                             .toInstant();
-                    endDateInstant = Instant.now();
+                    endDateInstant = Instant.now(clock);
                 } else {
-                    endDateInstant = startDateInstant.atZone(ZoneId.systemDefault()).plusYears( 1).toInstant();
+                    endDateInstant = startDateInstant.atZone(clock.getZone()).plusYears( 1).toInstant();
                 }
 
                 break;
@@ -178,7 +179,7 @@ public class ActivityService {
             default:
                 if(startDateInstant == null && endDateInstant == null) {
                     startDateInstant = Instant.EPOCH;
-                    endDateInstant = Instant.now();
+                    endDateInstant = Instant.now(clock);
                 }
                 break;
         }
