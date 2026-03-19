@@ -23,4 +23,11 @@ public interface ActivitySessionRepository extends JpaRepository<ActivitySession
             "GROUP BY a.processName, a.windowTitle " +
             "ORDER BY SUM(a.durationSeconds) DESC")
     List<Object[]> getSummaryForRange(Instant startDate, Instant endDate);
+
+    @Query("SELECT a.startTime, a.endTime " +
+            "FROM ActivitySession a " +
+            "WHERE a.startTime BETWEEN :startDate AND :endDate " +
+            "AND a.endTime IS NOT NULL " +
+            "ORDER BY a.startTime ASC")
+    List<Object[]> getTimeForRange(Instant startDate, Instant endDate);
 }

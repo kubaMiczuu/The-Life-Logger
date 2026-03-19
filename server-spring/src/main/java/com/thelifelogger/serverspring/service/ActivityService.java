@@ -122,6 +122,7 @@ public class ActivityService {
         if(startDate != null) startDateInstant = startDate.atStartOfDay(clock.getZone()).toInstant();
         if(endDate != null) endDateInstant = endDate.atStartOfDay(clock.getZone()).toInstant();
 
+        int timeRange;
 
         if(range == null) range = "";
 
@@ -134,7 +135,7 @@ public class ActivityService {
                 } else {
                     endDateInstant = startDateInstant.atZone(clock.getZone()).plusDays(1).toInstant();
                 }
-
+                timeRange = 24;
 
                 break;
 
@@ -148,6 +149,8 @@ public class ActivityService {
                 } else {
                     endDateInstant = startDateInstant.atZone(clock.getZone()).plusWeeks(1).toInstant();
                 }
+                timeRange = 7;
+
                 break;
 
             case "monthly":
@@ -160,6 +163,7 @@ public class ActivityService {
                 } else {
                     endDateInstant = startDateInstant.atZone(clock.getZone()).plusMonths(1).toInstant();
                 }
+                timeRange = 4;
 
                 break;
 
@@ -173,6 +177,7 @@ public class ActivityService {
                 } else {
                     endDateInstant = startDateInstant.atZone(clock.getZone()).plusYears( 1).toInstant();
                 }
+                timeRange = 12;
 
                 break;
 
@@ -181,19 +186,35 @@ public class ActivityService {
                     startDateInstant = Instant.EPOCH;
                     endDateInstant = Instant.now(clock);
                 }
+                assert startDateInstant != null;
+                assert endDateInstant != null;
+
+                ZonedDateTime start = startDateInstant.atZone(ZoneId.systemDefault());
+                ZonedDateTime end = endDateInstant.atZone(ZoneId.systemDefault());
+
+                if(Duration.between(start, end).toDays() <= 1) timeRange = 24;
+                else if(Duration.between(start, end).toDays() <= 7) timeRange = 7;
+                else if(Month.from(start).equals(Month.from(end))) timeRange = YearMonth.from(start).lengthOfMonth();
+                else if(Year.from(start).equals(Year.from(end))) timeRange = 12;
+                else timeRange = (int) -ChronoUnit.YEARS.between(start, end) + 1;
+
                 break;
         }
 
-        return enrich(activitySessionRepository.getSummaryForRange(startDateInstant, endDateInstant));
+        List<Object[]> rawData = activitySessionRepository.getSummaryForRange(startDateInstant, endDateInstant);
+        List<Object[]> timeData = activitySessionRepository.getTimeForRange(startDateInstant, endDateInstant);
+        return enrich(rawData, timeData, timeRange);
     }
 
-    private DashboardResponse enrich(List<Object[]> rawData) {
+    private DashboardResponse enrich(List<Object[]> rawData, List<Object[]> timeData, int timeRange) {
         List<NormalizedRule> processRules = normalizeRules("PROCESS");
         List<NormalizedRule> titleRules = normalizeRules("TITLE");
 
         Map<String, Long> processMap = new HashMap<>();
         Map<String, Long> categoryMap = new HashMap<>();
         Map<String, Long> browserMap = new HashMap<>();
+
+        Map<Integer, Long> timeMap = fillTimeMap(timeData, timeRange);
 
         StatsData mapsData = fillMaps(rawData, processMap, categoryMap, browserMap, processRules, titleRules);
 
@@ -206,7 +227,7 @@ public class ActivityService {
         List<ActivitySummary> browserStats = getStats(mapsData.browser(),
                 e -> new ActivitySummary(null, null, e.getValue(), null, e.getKey()));
 
-        return new DashboardResponse(processStats, categoryStats, browserStats);
+        return new DashboardResponse(processStats, categoryStats, browserStats, timeMap);
     }
 
     private List<NormalizedRule> normalizeRules(String expectedRuleType) {
@@ -265,6 +286,65 @@ public class ActivityService {
         }
 
         return new StatsData(processMap, categoryMap, browserMap);
+    }
+
+    private Map<Integer, Long> fillTimeMap(List<Object[]> timeData, int timeRange) {
+        Map<Integer, Long> timeMap = new TreeMap<>();
+        if (timeData == null || timeData.isEmpty()) return timeMap;
+
+        boolean isHourly = (timeRange == 24);
+        boolean isYearly = (timeRange == 12);
+        boolean isWeekly = (timeRange == 7);
+        boolean isMultiYear = (timeRange < 0 || timeRange > 366);
+
+        for (Object[] currentData : timeData) {
+            if (currentData[0] == null || currentData[1] == null) continue;
+
+            ZonedDateTime start = ((Instant) currentData[0]).atZone(ZoneId.systemDefault());
+            ZonedDateTime end = ((Instant) currentData[1]).atZone(ZoneId.systemDefault());
+
+            if (!start.isBefore(end)) continue;
+
+            ZonedDateTime current = start;
+            int safetyNet = 0;
+
+            while (current.isBefore(end) && safetyNet < 1000) {
+
+                safetyNet++;
+                ZonedDateTime nextBoundary;
+
+                int mapKey;
+
+                if (isHourly) {
+                    nextBoundary = current.plusHours(1).withMinute(0).withSecond(0).withNano(0);
+                    mapKey = current.getHour();
+
+                } else if (isYearly) {
+                    nextBoundary = current.plusMonths(1).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    mapKey = current.getMonthValue();
+
+                } else if (isMultiYear) {
+                    nextBoundary = current.plusYears(1).withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    mapKey = current.getYear();
+
+                } else {
+                    nextBoundary = current.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    mapKey = isWeekly ? current.getDayOfWeek().getValue() : current.getDayOfMonth();
+                }
+
+                ZonedDateTime segmentEnd = nextBoundary.isBefore(end) ? nextBoundary : end;
+
+                if (!segmentEnd.isAfter(current)) {
+                    segmentEnd = end;
+                }
+
+                long seconds = Duration.between(current, segmentEnd).getSeconds();
+                timeMap.put(mapKey, timeMap.getOrDefault(mapKey, 0L) + seconds);
+
+                current = segmentEnd;
+            }
+        }
+        return timeMap;
     }
 
     private List<ActivitySummary> getStats(Map<String, Long> map, Function<Map.Entry<String, Long>, ActivitySummary> mapper) {

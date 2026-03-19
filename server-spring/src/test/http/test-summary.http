@@ -1,0 +1,1 @@
+GET http://localhost:8080/api/stats/summary?range=""&startDate=2026-03-05&endDate=2026-03-20
