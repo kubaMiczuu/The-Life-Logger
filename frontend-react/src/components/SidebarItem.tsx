@@ -11,7 +11,7 @@ const SidebarItem = ({ name, to, icon }: SidebarItemProps) => {
     return (
         <NavLink
             to={to}
-            className={({ isActive }) => `flex flex-row items-center transition-all duration-300 pb-4 hover:scale-110 hover:text-purple-500
+            className={({ isActive }) => `flex flex-row items-center transition-all duration-300 pb-4 hover:scale-110 hover:text-purple-500 font-['JetBrains_Mono',monospace]
         ${isActive
                 ? "text-purple-500 underline underline-offset-8 decoration-2]"
                 : "text-white no-underline"}
