@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import LoadingPage from '../components/LoadingPage';
+import Loading from './Loading.tsx';
 import {formatTime} from "../utils/formatTime.ts";
 
-const HomePage = () => {
+const Home = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     const [todayProcessStats, setTodayProcessStats] = useState<[]>([]);
@@ -13,7 +13,7 @@ const HomePage = () => {
     const [todayTimeStats, setTodayTimeStats] = useState<Record<number, number>>({});
     const [chartLabels, setChartLabels] = useState<string[]>([]);
 
-    useEffect(() => {
+    const fetchData = async () => {
         axios.get('http://localhost:8080/api/stats/summary', {
             params: {range: "daily"}
         })
@@ -52,18 +52,14 @@ const HomePage = () => {
             })
             .catch(err => {
                 console.log(err)
-                setIsLoading(false);
             });
+    }
+
+    useEffect(() => {
+        fetchData().then();
     }, []);
 
-    if (isLoading) return <LoadingPage />;
-
-    {console.log(todayProcessStats)}
-    {console.log(todayTopApplication)}
-    {console.log(todayTopCategory)}
-    {console.log(todayTimeStats)}
-    {console.log(chartLabels)}
-    {console.log(todaySummedTime)}
+    if (isLoading) return <Loading fetchData={fetchData} />;
 
     return (
         <div className="bg-[#131316] border-2 border-purple-500/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.25)] text-center w-5/6">
@@ -104,4 +100,4 @@ const HomePage = () => {
         </div>
         )
 }
-export default HomePage;
+export default Home;
