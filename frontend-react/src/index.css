@@ -1,3 +1,21 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;900&display=swap');
+
+:focus {
+    outline: none !important;
+}
+:focus-visible {
+    outline: none !important;
+}
+
+.defaultColorFormat {
+    color: var(--color-purple-500);
+    --tw-font-weight: var(--font-weight-black);
+    font-weight: var(--font-weight-black);
+}
+
+.whiteColorFormat {
+    color: var(--color-white);
+    text-decoration-line: underline;
+}
