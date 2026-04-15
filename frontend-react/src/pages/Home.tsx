@@ -89,12 +89,20 @@ const Home = () => {
             </div>
 
 
-            <div className={`m-5 h-6/13 border-2 border-purple-500/30 rounded-2xl text-purple-500`}>
+            <div className={`m-5 h-6/11 border-2 border-purple-500/30 rounded-2xl text-purple-500`}>
                 Wykres dzisiejszy
             </div>
 
-            <div className={`m-5 h-1/5 border-2 border-purple-500/30 rounded-2xl text-purple-500`}>
-                Ostatnie aktywne procesy
+            <div className={`m-5 h-1/8 border-2 border-purple-500/30 rounded-2xl text-purple-500`}>
+
+                <span className={`text-center text-purple-500 text-2xl font-black`}><span className={`text-white underline`}>Recent</span> active processes</span>
+
+                <div className={`flex flex-row text-purple-500 text-lg flex-wrap justify-center items-center gap-x-12 gap-y-2 p-5`}>
+                    {todayProcessStats.slice(0,5).map((process,index) =>
+                        <span className={`font-['JetBrains_Mono',monospace] font-black whitespace-nowrap`}><span className={`text-white underline`}>{index+1}.</span> {process.processName} </span>
+                    )}
+                </div>
+
             </div>
 
         </div>
