@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Loading from './Loading.tsx';
 import {formatTime} from "../utils/formatTime.ts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer} from "recharts";
+import {data} from "react-router-dom";
 
 const Home = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -10,12 +12,12 @@ const Home = () => {
     const [todaySummedTime, setTodaySummedTime] = useState<string>("");
     const [todayTopApplication, setTodayTopApplication] = useState<any>([]);
     const [todayTopCategory, setTodayTopCategory] = useState<any>([]);
-    const [todayTimeStats, setTodayTimeStats] = useState<Record<number, number>>({});
+    const [todayTimeStats, setTodayTimeStats] = useState<number[]>([]);
     const [chartLabels, setChartLabels] = useState<string[]>([]);
 
     const fetchData = async () => {
         axios.get('http://localhost:8080/api/stats/summary', {
-            params: {range: "daily"}
+            params: {range: "daily", startDate:"2026-03-19"}
         })
             .then(res => {
                 const data = res.data;
@@ -39,13 +41,17 @@ const Home = () => {
 
                 setTodayProcessStats(data.processStats);
 
-                setTodayTimeStats(timeData);
 
+                let timeStats: number[] = [];
                 let labels: string[] = [];
-                for(let i= 0; i < 24; i++) {
+
+                for(let i = 0; i < 24; i++) {
                     const seconds = timeData[i] || 0;
+                    timeStats.push(seconds);
                     labels.push(formatTime(24, seconds));
                 }
+
+                setTodayTimeStats(timeStats);
                 setChartLabels(labels);
 
                 setIsLoading(false);
@@ -58,6 +64,12 @@ const Home = () => {
     useEffect(() => {
         fetchData().then();
     }, []);
+
+    const formattedChartData = todayTimeStats.map((value, index) => ({
+        hour: index,
+        seconds: value,
+        display: chartLabels[index]
+    }))
 
     if (isLoading) return <Loading fetchData={fetchData} />;
 
@@ -90,7 +102,42 @@ const Home = () => {
 
 
             <div className={`m-5 h-6/11 border-2 border-purple-500/30 rounded-2xl text-purple-500`}>
-                Wykres dzisiejszy
+
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={formattedChartData}>
+                        <XAxis
+                            dataKey="hour"
+                            stroke="#a855f7"
+                            tickFormatter={(value) => `${value}:00`}
+                        />
+                        <YAxis stroke="#a855f7" hide />
+
+                        <Tooltip
+                            cursor={{fill: 'rgba(168, 85, 247, 0.1)'}}
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-[#131316] border border-purple-500 p-2 rounded shadow-lg">
+                                            <p className="text-white font-mono">{`${payload[0].payload.hour}:00`}</p>
+                                            <p className="text-purple-400 font-bold">{payload[0].payload.display}</p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+
+                        <Bar dataKey="seconds">
+                            {formattedChartData.map((entry, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={entry.seconds > 0 ? "#ad46ff" : "transparent"}
+                                />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+
             </div>
 
             <div className={`m-5 h-1/8 border-2 border-purple-500/30 rounded-2xl text-purple-500`}>
