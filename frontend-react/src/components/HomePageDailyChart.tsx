@@ -12,12 +12,12 @@ interface dailyChartProp {
 
 const HomePageDailyChart = ({chartData}:dailyChartProp) => {
     return (
-        <div className={`m-5 h-6/11 border-2 border-purple-500/30 rounded-2xl`}>
+        <div className={`lg:m-[2%] lg:h-[45%] border-2 border-purple-500/30 rounded-2xl`}>
 
             <span className={`text-2xl defaultColorFormat font-['JetBrains_Mono',monospace]`}><span className={`whiteColorFormat`}>Daily</span> Activity Distribution</span>
 
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{bottom: 30 }}>
+                <BarChart data={chartData} margin={{bottom: 30, top: 20 }}>
                     <XAxis
                         dataKey="hour"
                         stroke="#a855f7"

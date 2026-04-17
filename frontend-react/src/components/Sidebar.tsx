@@ -3,7 +3,7 @@ import {BarChart2, House, Settings, CircleQuestionMark, Wrench} from "lucide-rea
 
 const Sidebar = () => {
     return (
-        <div className="bg-[#131316] border-2 border-purple-500/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.25)] text-center w-1/6">
+        <div className="lg:w-1/5 bg-[#131316] border-2 border-purple-500/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.25)] text-center">
             <h1 className="text-4xl font-black text-white mb-2 border-b-5 rounded-2xl border-purple-500 p-3 pt-0 cursor-default">
                 LIFE<span className="text-purple-500">LOGGER</span>
             </h1>
