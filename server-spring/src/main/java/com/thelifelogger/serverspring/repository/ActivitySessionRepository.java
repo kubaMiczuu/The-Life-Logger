@@ -26,7 +26,7 @@ public interface ActivitySessionRepository extends JpaRepository<ActivitySession
 
     @Query("SELECT a.startTime, a.endTime " +
             "FROM ActivitySession a " +
-            "WHERE a.startTime BETWEEN :startDate AND :endDate " +
+            "WHERE (a.startTime BETWEEN :startDate AND :endDate OR a.endTime BETWEEN :startDate AND :endDate) " +
             "AND a.endTime IS NOT NULL " +
             "ORDER BY a.startTime ASC")
     List<Object[]> getTimeForRange(Instant startDate, Instant endDate);

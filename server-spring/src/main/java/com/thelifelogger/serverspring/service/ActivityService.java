@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
+import java.time.chrono.ChronoZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -203,10 +204,10 @@ public class ActivityService {
 
         List<Object[]> rawData = activitySessionRepository.getSummaryForRange(startDateInstant, endDateInstant);
         List<Object[]> timeData = activitySessionRepository.getTimeForRange(startDateInstant, endDateInstant);
-        return enrich(rawData, timeData, timeRange);
+        return enrich(rawData, timeData, timeRange, startDateInstant, endDateInstant);
     }
 
-    private DashboardResponse enrich(List<Object[]> rawData, List<Object[]> timeData, int timeRange) {
+    private DashboardResponse enrich(List<Object[]> rawData, List<Object[]> timeData, int timeRange, Instant startRaport, Instant endRaport) {
         List<NormalizedRule> processRules = normalizeRules("PROCESS");
         List<NormalizedRule> titleRules = normalizeRules("TITLE");
 
@@ -214,7 +215,7 @@ public class ActivityService {
         Map<String, Long> categoryMap = new HashMap<>();
         Map<String, Long> browserMap = new HashMap<>();
 
-        Map<Integer, Long> timeMap = fillTimeMap(timeData, timeRange);
+        Map<Integer, Long> timeMap = fillTimeMap(timeData, timeRange, startRaport, endRaport);
 
         StatsData mapsData = fillMaps(rawData, processMap, categoryMap, browserMap, processRules, titleRules);
 
@@ -288,7 +289,7 @@ public class ActivityService {
         return new StatsData(processMap, categoryMap, browserMap);
     }
 
-    private Map<Integer, Long> fillTimeMap(List<Object[]> timeData, int timeRange) {
+    private Map<Integer, Long> fillTimeMap(List<Object[]> timeData, int timeRange, Instant startRaport, Instant endRaport) {
         Map<Integer, Long> timeMap = new TreeMap<>();
         if (timeData == null || timeData.isEmpty()) return timeMap;
 
@@ -299,9 +300,15 @@ public class ActivityService {
 
         for (Object[] currentData : timeData) {
             if (currentData[0] == null || currentData[1] == null) continue;
+            
+            ZonedDateTime reportStart = startRaport.atZone(ZoneId.systemDefault());
+            ZonedDateTime reportEnd = endRaport.atZone(ZoneId.systemDefault());
 
-            ZonedDateTime start = ((Instant) currentData[0]).atZone(ZoneId.systemDefault());
-            ZonedDateTime end = ((Instant) currentData[1]).atZone(ZoneId.systemDefault());
+            ZonedDateTime rawStart = ((Instant) currentData[0]).atZone(ZoneId.systemDefault());
+            ZonedDateTime rawEnd = ((Instant) currentData[1]).atZone(ZoneId.systemDefault());
+
+            ZonedDateTime start = rawStart.isBefore(reportStart) ? reportStart : rawStart;
+            ZonedDateTime end = rawEnd.isAfter(reportEnd) ? reportEnd : rawEnd;
 
             if (!start.isBefore(end)) continue;
 
