@@ -8,7 +8,7 @@ const Sidebar = () => {
                 LIFE<span className="text-purple-500">LOGGER</span>
             </h1>
 
-            <div className="flex flex-col text-white pt-8 text-xl h-14/15">
+            <div className="lg:h-[95%] flex flex-col text-white pt-8 text-xl">
                 <div className="flex flex-col gap-2">
                     <SidebarItem name="Home Page" to="/" icon={<House size={20} />} />
                     <SidebarItem name="Statistics" to="/stats" icon={<BarChart2 size={20} />} />
