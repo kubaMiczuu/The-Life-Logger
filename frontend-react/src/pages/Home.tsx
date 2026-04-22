@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 
 import SystemStatus from "./SystemStatus.tsx";
 import HomePageDailyChart from '../components/HomePageDailyChart.tsx'
@@ -7,26 +6,29 @@ import HomePageBasicStatistics from "../components/HomePageBasicStatistics.tsx";
 import HomePageRecentActivity from "../components/HomePageRecentActivity.tsx";
 
 import {formatTime} from "../utils/formatTime.ts";
+import {fetchData} from "../utils/fetchData.ts";
+
 
 const Home = () => {
     const [isLoading, setIsLoading] = useState(true);
 
-    const [todayProcessStats, setTodayProcessStats] = useState<[]>([]);
+    const [todayProcessStats, setTodayProcessStats] = useState<any>([]);
     const [todaySummedTime, setTodaySummedTime] = useState<string>("");
     const [todayTopApplication, setTodayTopApplication] = useState<any>([]);
     const [todayTopCategory, setTodayTopCategory] = useState<any>([]);
     const [todayTimeStats, setTodayTimeStats] = useState<number[]>([]);
     const [chartLabels, setChartLabels] = useState<string[]>([]);
 
-    const fetchData = async () => {
-        axios.get('http://localhost:8080/api/stats/summary', {
-            params: {range: "daily"}
-        })
-            .then(res => {
-                const data = res.data;
-                const processData = data.processStats;
-                const categoryData = data.categoryStats;
-                const timeData: Record<number, number> = data.timeStats;
+
+
+    useEffect(() => {
+        fetchData({range: "daily", startDate: "", endDate: ""})
+            .then(response => {
+                if(response == null) return;
+
+                const processData = response.processStats;
+                const categoryData = response.categoryStats;
+                const timeData: Record<number, number> = response.timeStats;
 
                 let todayTime = 0;
                 processData.map((data: { durationSeconds: number; }) => {
@@ -42,7 +44,7 @@ const Home = () => {
 
                 setTodayTopCategory(categoryData[0]);
 
-                setTodayProcessStats(data.processStats);
+                setTodayProcessStats(response.processStats);
 
 
                 let timeStats: number[] = [];
@@ -62,10 +64,6 @@ const Home = () => {
             .catch(err => {
                 console.log(err)
             });
-    }
-
-    useEffect(() => {
-        fetchData().then();
     }, []);
 
     const formattedChartData = todayTimeStats.map((value, index) => ({

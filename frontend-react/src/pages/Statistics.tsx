@@ -14,8 +14,7 @@ const Statistics = () => {
                 <div className={`lg:w-1/4 lg:m-[2%] lg:mt-0 lg:h-[97%] border-2 border-purple-500/30 rounded-2xl text-white`}>Websites</div>
 
             </div>
-
-
+            
         </div>
     )
 }

@@ -1,9 +1,8 @@
-interface processStat {
-    processName: string;
-}
+import type {processStatsFields} from "../utils/types.ts";
+
 
 interface recentActivityStats {
-    todayProcessStats: processStat[];
+    todayProcessStats: processStatsFields[];
 }
 
 const HomePageRecentActivity = ({todayProcessStats}:recentActivityStats) => {
