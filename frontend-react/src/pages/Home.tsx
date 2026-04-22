@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-import Loading from './Loading.tsx';
+import SystemStatus from "./SystemStatus.tsx";
 import HomePageDailyChart from '../components/HomePageDailyChart.tsx'
 import HomePageBasicStatistics from "../components/HomePageBasicStatistics.tsx";
 import HomePageRecentActivity from "../components/HomePageRecentActivity.tsx";
@@ -74,20 +74,27 @@ const Home = () => {
         display: chartLabels[index]
     }))
 
-    if (isLoading) return <Loading fetchData={fetchData} />;
+    {console.log(formattedChartData)}
+    {console.log(todayProcessStats)}
 
-    return (
-        <div className="lg:w-4/5 bg-[#131316] border-2 border-purple-500/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.25)] text-center">
+    if (isLoading) return <SystemStatus fetchData={fetchData} message={"Loading your data..."} />;
 
-            <h1 className={`lg:h-[10%] lg:m-[2%] defaultColorFormat p-5 text-4xl border-2 border-purple-500/30 rounded-2xl m-5 font-['JetBrains_Mono',monospace]`}>Let's see how did <span className={`whiteColorFormat`}>you</span> spent <span className={`whiteColorFormat`}>your</span> day!</h1>
+    if(todaySummedTime && todayTopApplication && todayTopCategory && todayProcessStats.length > 0) {
+        return (
+            <div className="lg:w-4/5 bg-[#131316] border-2 border-purple-500/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.25)] text-center">
 
-            <HomePageBasicStatistics todaySummedTime={todaySummedTime} todayTopApplication={todayTopApplication} todayTopCategory={todayTopCategory}/>
+                <h1 className={`lg:h-[10%] lg:m-[2%] defaultColorFormat p-5 text-4xl border-2 border-purple-500/30 rounded-2xl m-5 font-['JetBrains_Mono',monospace]`}>Let's see how did <span className={`whiteColorFormat`}>you</span> spent <span className={`whiteColorFormat`}>your</span> day!</h1>
 
-            <HomePageDailyChart chartData={formattedChartData} />
+                <HomePageBasicStatistics todaySummedTime={todaySummedTime} todayTopApplication={todayTopApplication} todayTopCategory={todayTopCategory}/>
 
-            <HomePageRecentActivity todayProcessStats={todayProcessStats} />
+                <HomePageDailyChart chartData={formattedChartData} />
 
-        </div>
+                <HomePageRecentActivity todayProcessStats={todayProcessStats} />
+
+            </div>
         )
+    }
+
+    return <SystemStatus fetchData={fetchData} message={"There is no data to show..."} />
 }
 export default Home;

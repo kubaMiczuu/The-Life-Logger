@@ -1,6 +1,11 @@
 import {useEffect, useState} from "react";
 
-const Loading = ({fetchData}:any) => {
+interface statusProps {
+    fetchData: any,
+    message: string
+}
+
+const SystemStatus = ({fetchData, message}:statusProps) => {
 
     const [timer, setTimer] = useState(0);
 
@@ -25,7 +30,7 @@ const Loading = ({fetchData}:any) => {
 
                 <div className="mt-6 flex gap-3 justify-center">
                     <div className="h-2 w-2 rounded-full bg-purple-500 animate-ping"></div>
-                    <span className="lg:text-xs uppercase tracking-widest text-purple-400 font-bold">Loading your data...</span>
+                    <span className="lg:text-xs uppercase tracking-widest text-purple-400 font-bold">{message}</span>
                 </div>
 
                 <div className={`lg:w-1/4 grid transition-all duration-300 ease-in-out ${timer>5?"opacity-100 grid-rows-[1fr] mt-6":"opacity-0 grid-rows-[0fr] mt-0"}`}>
@@ -38,4 +43,4 @@ const Loading = ({fetchData}:any) => {
     )
 }
 
-export default Loading;
+export default SystemStatus;
