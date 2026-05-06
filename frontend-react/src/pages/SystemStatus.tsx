@@ -1,11 +1,12 @@
 import {useEffect, useState} from "react";
 
+import {fetchData} from "../utils/fetchData.ts";
+
 interface statusProps {
-    fetchData: any,
     message: string
 }
 
-const SystemStatus = ({fetchData, message}:statusProps) => {
+const SystemStatus = ({message}:statusProps) => {
 
     const [timer, setTimer] = useState(0);
 
@@ -34,7 +35,7 @@ const SystemStatus = ({fetchData, message}:statusProps) => {
                 </div>
 
                 <div className={`lg:w-1/4 grid transition-all duration-300 ease-in-out ${timer>5?"opacity-100 grid-rows-[1fr] mt-6":"opacity-0 grid-rows-[0fr] mt-0"}`}>
-                    <button onClick={() => {fetchData(); setTimer(0)}} className={`${timer>5?"cursor-pointer":"cursor-default"} lg:text-xl uppercase text-purple-400 font-bold hover:scale-105 hover:underline-offset-8 hover:duration-200 ease-in-out transition hover:text-purple-500`}>Retry</button>
+                    <button onClick={() => {fetchData({range: "daily", startDate: "", endDate: ""}); setTimer(0)}} className={`${timer>5?"cursor-pointer":"cursor-default"} lg:text-xl uppercase text-purple-400 font-bold hover:scale-105 hover:underline-offset-8 hover:duration-200 ease-in-out transition hover:text-purple-500`}>Retry</button>
                 </div>
 
             </div>

@@ -8,18 +8,17 @@ import HomePageRecentActivity from "../components/HomePageRecentActivity.tsx";
 import {formatTime} from "../utils/formatTime.ts";
 import {fetchData} from "../utils/fetchData.ts";
 
+import type {statsFields} from "../utils/types.ts";
 
 const Home = () => {
     const [isLoading, setIsLoading] = useState(true);
 
-    const [todayProcessStats, setTodayProcessStats] = useState<any>([]);
+    const [todayProcessStats, setTodayProcessStats] = useState<statsFields[]>([]);
     const [todaySummedTime, setTodaySummedTime] = useState<string>("");
-    const [todayTopApplication, setTodayTopApplication] = useState<any>([]);
-    const [todayTopCategory, setTodayTopCategory] = useState<any>([]);
+    const [todayTopApplication, setTodayTopApplication] = useState<any>("");
+    const [todayTopCategory, setTodayTopCategory] = useState<any>("");
     const [todayTimeStats, setTodayTimeStats] = useState<number[]>([]);
     const [chartLabels, setChartLabels] = useState<string[]>([]);
-
-
 
     useEffect(() => {
         fetchData({range: "daily", startDate: "", endDate: ""})
@@ -72,10 +71,7 @@ const Home = () => {
         display: chartLabels[index]
     }))
 
-    {console.log(formattedChartData)}
-    {console.log(todayProcessStats)}
-
-    if (isLoading) return <SystemStatus fetchData={fetchData} message={"Loading your data..."} />;
+    if (isLoading) return <SystemStatus message={"Loading your data..."} />;
 
     if(todaySummedTime && todayTopApplication && todayTopCategory && todayProcessStats.length > 0) {
         return (
@@ -93,6 +89,6 @@ const Home = () => {
         )
     }
 
-    return <SystemStatus fetchData={fetchData} message={"There is no data to show..."} />
+    return <SystemStatus message={"There is no data to show..."} />
 }
 export default Home;

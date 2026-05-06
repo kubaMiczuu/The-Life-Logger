@@ -1,20 +1,4 @@
-export interface processStatsFields {
-    processName: string,
-    label: string,
-    durationSeconds: number,
-    category: string,
-    domain: string
-}
-
-export interface categoryStatsFields {
-    processName: string,
-    label: string,
-    durationSeconds: number,
-    category: string,
-    domain: string
-}
-
-export interface browserStatsFields {
+export interface statsFields {
     processName: string,
     label: string,
     durationSeconds: number,
@@ -23,8 +7,8 @@ export interface browserStatsFields {
 }
 
 export interface fetchReturnStats {
-    processStats: processStatsFields[];
-    categoryStats: categoryStatsFields[];
-    browserStats: browserStatsFields[];
+    processStats: statsFields[];
+    categoryStats: statsFields[];
+    browserStats: statsFields[];
     timeStats: number[];
 }
