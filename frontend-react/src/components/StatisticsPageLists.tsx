@@ -7,6 +7,7 @@ interface statLists {
 }
 
 const StatisticsPageLists = ({title, stats}:statLists) => {
+
     return (
         <div className={`lg:w-1/4 lg:m-[2%] lg:mt-0 lg:h-[97%] border-2 border-purple-500/30 rounded-2xl text-white`}>
             <span className={`text-3xl defaultColorFormat font-['JetBrains_Mono',monospace]`}>{title}</span>
@@ -17,10 +18,14 @@ const StatisticsPageLists = ({title, stats}:statLists) => {
 
                 {stats.map((item, index) => (
                     <>
-                                    <span className={`text-left truncate defaultColorFormat font-['JetBrains_Mono',monospace]`} key={`name-${index}`}>{
-                                        item.processName != null ? item.processName : "other"
-                                    }</span>
-                        <span className={`text-right`} key={`time-${index}`}>{
+                        <span className={`text-left text-lg truncate defaultColorFormat font-['JetBrains_Mono',monospace]`} key={`name-${index}`}>{
+                            item.processName == null && item.domain == null
+                                ? "other"
+                                : (item.processName != null
+                                    ? item.processName
+                                    : item.domain.substring(item.domain.indexOf('/')+2, item.domain.lastIndexOf('.')))
+                        }</span>
+                        <span className={`text-right text-sm`} key={`time-${index}`}>{
                             item.durationSeconds > 3600 ? formatTime(7, item.durationSeconds) : formatTime(24, item.durationSeconds)
                         }</span>
                     </>
