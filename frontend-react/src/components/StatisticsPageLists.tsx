@@ -23,7 +23,11 @@ const StatisticsPageLists = ({title, stats}:statLists) => {
                                 ? "other"
                                 : (item.processName != null
                                     ? item.processName
-                                    : item.domain.substring(item.domain.indexOf('/')+2, item.domain.lastIndexOf('.')))
+                                    : item.domain.substring(
+                                        (item.domain.indexOf('/')+2
+                                        ? item.domain.indexOf('/')+2 : 0),
+                                        (item.domain.lastIndexOf('.')
+                                        ? item.domain.lastIndexOf('.') : item.domain.length-1)))
                         }</span>
                         <span className={`text-right text-sm`} key={`time-${index}`}>{
                             item.durationSeconds > 3600 ? formatTime(7, item.durationSeconds) : formatTime(24, item.durationSeconds)

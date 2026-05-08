@@ -9,7 +9,7 @@ const Statistics = () => {
 
     const [isLoading, setIsLoading] = useState(true);
 
-    const [range, setRange] = useState<string>("");
+    const [range, setRange] = useState<string>("daily");
     const [startDate, setStartDate] = useState<string>("");
     const [endDate, setEndDate] = useState<string>("");
 
